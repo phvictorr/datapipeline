@@ -17,5 +17,6 @@ def connect():
         print('1. Conexão SQL bem sucedida!')
     else:
         print('Erro: Conexão falhou! Revise os dados e tente novamente!')
+        return
 
     return conn
