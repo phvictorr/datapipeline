@@ -2,17 +2,14 @@ import os
 import json
 import pandas as pd
 import datetime
-
-import conexao
 import consulta
-import conexao
 
 class PG:
     def __init__(self, data, conn):
         self.data = data
         self.conn = conn
     
-    def read_PG(self):
+    async def read_PG(self):
         # Consulta SQL para obter os nomes das tabelas
         cursor = self.conn.cursor()
         consulta_sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
@@ -25,6 +22,7 @@ class PG:
 
             if nomes_tabelas == []:
                 print('A consulta de nomes de tabelas falhou! Revise os dados e tente novamente!')
+                return
             else:
                 # Para cada tabela, ler os dados e salvar o arquivo no computador
                 for tabela in nomes_tabelas:
@@ -44,11 +42,52 @@ class PG:
                             linha_serializavel = [list(col) if isinstance(col, pd._libs.tslibs.timestamps.Timestamp) else col for col in linha_serializavel]
                             dados_serializaveis.append(linha_serializavel)
 
+                        # Obter os nomes das colunas
+                        nomes_colunas, tipos_colunas = data_consulta.get_colunas()
+
+                        if nomes_colunas == [] or tipos_colunas == []:
+                            print('A consulta de nomes ou tipos de colunas falhou! Revise os dados e tente novamente!')
+                            return
+                        
+                        #Salvar nome de colunas em um arquivo json
+                        caminho_arquivo_json = os.path.join(caminho_pasta, f"{tabela}_colunas.json")
+                        with open(caminho_arquivo_json, 'w') as f:
+                            json.dump(nomes_colunas, f, default=str)  # Use default=str para serializar tipos não padrão
+                        
+                        if caminho_arquivo_json == None:
+                            print('Erro: Caminho do arquivo JSON não encontrado! Revise os dados e tente novamente!')
+                            return
+
+                        #Salvar o tipo de colunas em um arquivo json
+                        caminho_arquivo_json = os.path.join(caminho_pasta, f"{tabela}_tipos.json")
+                        with open(caminho_arquivo_json, 'w') as f:
+                            json.dump(tipos_colunas, f, default=str)  # Use default=str para serializar tipos não padrão
+                        
+                        if caminho_arquivo_json == None:
+                            print('Erro: Caminho do arquivo JSON não encontrado! Revise os dados e tente novamente!')
+                            return
+
+                        # Manter relacionamentos entre tabelas
+                        relacionamentos = {
+                            "tabela": tabela,
+                            "colunas": nomes_colunas,
+                            "registros": dados_serializaveis
+                        }
+
                         # Caminho do arquivo
                         caminho_arquivo_json = os.path.join(caminho_pasta, f"{tabela}.json")
 
+                        if caminho_arquivo_json == None:
+                            print('Erro: Caminho do arquivo JSON não encontrado! Revise os dados e tente novamente!')
+                            return
+
                         # Serializar para JSON
                         with open(caminho_arquivo_json, 'w') as f:
-                            json.dump(dados_serializaveis, f)
-                        
-                        print(f'Arquivo {tabela}.json salvo com sucesso!')
+                            json.dump(relacionamentos, f, default=str)  # Use default=str para serializar tipos não padrão
+
+                        if caminho_arquivo_json == None:
+                            print('Erro: Caminho do arquivo JSON não encontrado! Revise os dados e tente novamente!')
+                            return
+                        else:
+                            print(f'Arquivo {tabela}.json salvo com sucesso!')
+            return nomes_tabelas

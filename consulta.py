@@ -13,3 +13,13 @@ class Consulta:
             self.cursor.execute(consulta)
             dados = self.cursor.fetchall()
             return dados
+    
+    def get_colunas(self):
+        consulta_sql = f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = %s;"
+        self.cursor.execute(consulta_sql, (self.tabela,))
+        
+        # Obter os nomes e tipos das colunas
+        colunas_info = self.cursor.fetchall()
+        nomes_colunas = [desc[0] for desc in colunas_info]
+        tipos_colunas = [desc[1] for desc in colunas_info]
+        return nomes_colunas, tipos_colunas
